@@ -18,7 +18,8 @@ void toBinary(int num) {
 		toBinary(num/2);
 	}
 }
-int main() {
+
+void shell_interactive() { 
     char buffer[MAX_CMD_BUFFER];
     char previous_buffer[MAX_CMD_BUFFER];
     printf("Starting IC shell \n");
@@ -89,4 +90,15 @@ int main() {
 	}
 	copy_buffer(buffer,previous_buffer, sizeof(buffer));
     }
+}
+
+
+
+int main(){
+	if(){
+		no_interactive_shell();
+	}else{
+		interactive_shell();
+	}
+	return 0;
 }
