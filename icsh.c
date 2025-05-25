@@ -6,6 +6,8 @@
 #include "stdio.h"
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
 #define MAX_CMD_BUFFER 255
 
 void copy_buffer(char buffer[], char previous_buffer[], int n){
@@ -14,11 +16,43 @@ void copy_buffer(char buffer[], char previous_buffer[], int n){
 	copy_buffer(buffer,previous_buffer, n-1);
 }
 void toBinary(int num) {
-	if (num>0) {
+	if (num>0){
 		toBinary(num/2);
 	}
 }
-
+int external_program(char buffer[]){
+	int status;
+	size_t len = strlen(buffer);
+	while (len > 0 && (buffer[len-1] == '\n' || buffer[len-1] == ' ')) {
+    buffer[len-1] = '\0';
+    len--;
+	}
+	char* p = strtok(buffer, " ");
+	char* command[MAX_CMD_BUFFER /2 +1];
+	int i = 0;
+	while (p != NULL && i < MAX_CMD_BUFFER/2) { 
+		command[i++] = p;
+		p = strtok(NULL, " ");
+	}
+	command[i] = NULL;
+	pid_t pid = fork();
+	if (pid <  0) {
+		perror("Fork failed");
+		return 0;
+	}
+	if (pid == 0) {
+		execvp(command[0], command);
+		perror("execvp failed");
+		exit(1);
+	}else{
+		waitpid(pid, &status,0);
+		if (status == 0) { 
+			return 1;
+		} else {
+			return 0;
+		}
+	}
+}
 int interactive_shell() { 
     char buffer[MAX_CMD_BUFFER];
     char previous_buffer[MAX_CMD_BUFFER];
@@ -87,7 +121,9 @@ int interactive_shell() {
 		}
 	}
 	else {
-		printf("Bad Command!! \n");
+		if(!external_program(buffer)){ 
+			printf("Bad Command!! \n");
+		}
 	}
 	copy_buffer(buffer,previous_buffer, sizeof(buffer));
     }
