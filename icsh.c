@@ -10,11 +10,7 @@
 #include <sys/wait.h>
 #define MAX_CMD_BUFFER 255
 
-void copy_buffer(char buffer[], char previous_buffer[], int n){
-	if (n==0) return;
-	previous_buffer[n-1] = buffer[n-1];
-	copy_buffer(buffer,previous_buffer, n-1);
-}
+
 void toBinary(int num) {
 	if (num>0){
 		toBinary(num/2);
@@ -24,8 +20,8 @@ int external_program(char buffer[]){
 	int status;
 	size_t len = strlen(buffer);
 	while (len > 0 && (buffer[len-1] == '\n' || buffer[len-1] == ' ')) {
-    buffer[len-1] = '\0';
-    len--;
+    		buffer[len-1] = '\0';
+    		len--;
 	}
 	char* p = strtok(buffer, " ");
 	char* command[MAX_CMD_BUFFER /2 +1];
@@ -55,7 +51,7 @@ int external_program(char buffer[]){
 }
 int interactive_shell() { 
     char buffer[MAX_CMD_BUFFER];
-    char previous_buffer[MAX_CMD_BUFFER];
+    char previous_buffer[MAX_CMD_BUFFER] = "";
     printf("Starting IC shell \n");
     printf("Welcome to my shell ~~~  ૮ ˶ᵔ ᵕ ᵔ˶ ა ~~~ \n");
     printf("⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣤⡤⠤⠤⠤⣤⣄⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n"
@@ -75,36 +71,40 @@ int interactive_shell() {
        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n");
     while (1) {
         printf("Wah  ࣪𖤐. ");
-        fgets(buffer, 255, stdin);	
-	if (strcmp(buffer, "\n") == 0){
+	fgets(buffer, 255, stdin);
+	if (strcmp(buffer, "") == 0){
 		continue;
 	}
 	// 2. !!
 	if (strncmp("!!", buffer, 2) == 0){
-                printf("%s ", previous_buffer);
-                copy_buffer(previous_buffer,buffer, sizeof(buffer));
-	}
+                if (strlen(previous_buffer) == 0) {
+                        printf("No previous command.\n");
+                        continue;
+                }
+		printf("%s", previous_buffer);
+		strncpy(buffer, previous_buffer, MAX_CMD_BUFFER-1);
+		buffer[MAX_CMD_BUFFER - 1] = '\0';
+        }
 	// 1. echo
 	if (strncmp("echo ", buffer, 5) == 0){
 		int length = strlen(buffer) - 5;
-		char text[length];
+		char text[length+1];
 		strncpy(text, buffer+ 5, length);
 		text[length] = '\0';
-		printf("%s ", text);
+		printf("%s", text);
 	}
 	//3. exit<num>
-	else if (strncmp("exit ", buffer, 5) == 0 ) {
+	else if (strncmp("exit ", buffer, 4) == 0 ) {
 		int length = strlen(buffer) - 5;
                 char text[length];
                 strncpy(text, buffer+ 5, length);
                 text[length] = '\0';
-                int num = atoi(text);
-		if (num > 255){
-			num = num & 0xFF;
+                int num = 0;
+		if (strncmp("exit ", buffer, 5) == 0){
+			num = atoi(text) & 0xFF;
 		}
-		if(num == 1){
-			printf("Bye ~~~~\n");
-			printf(
+		printf("Bye ~~~~\n");
+		printf(
        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢎⠱⠊⡱⠀⠀⠀⠀⠀⠀\n"
        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡠⠤⠒⠒⠒⠒⠤⢄⣑⠁⠀⠀⠀⠀⠀⠀⠀⠀\n"
        "⠀⠀⠀⠀⠀⠀⠀⢀⡤⠒⠝⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠲⢄⡀⠀⠀⠀⠀⠀\n"
@@ -114,18 +114,20 @@ int interactive_shell() {
        "⢇⠀⠀⠀⠀⠀⢀⠜⠁⠀⠉⡕⠒⠒⠒⠒⠒⠛⠉⠹⡄⣀⠘⡄⠀⠀⠀⠀⠀⠀\n"
        "⠀⠑⠂⠤⠔⠒⠁⠀⠀⡎⠱⡃⠀⠀⡄⠀⠄⠀⠀⠠⠟⠉⡷⠁⠀⠀⠀⠀⠀⠀\n"
        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠹⠤⠤⠴⣄⡸⠤⣄⠴⠤⠴⠄⠼⠀⠀⠀⠀⠀⠀⠀⠀\n");
-
-                        return 0;
-		}else{
-			printf("ERROR %d \n", num);
-		}
+                return num;
 	}
 	else {
-		if(!external_program(buffer)){ 
+		char buffer_copy[MAX_CMD_BUFFER];
+   		strcpy(buffer_copy, buffer);
+		strcat(buffer_copy, "\n");
+		if(!external_program(buffer_copy)){ 
 			printf("Bad Command!! \n");
 		}
 	}
-	copy_buffer(buffer,previous_buffer, sizeof(buffer));
+	if (strcmp(buffer, "!!") != 0) {
+        	strncpy(previous_buffer, buffer, MAX_CMD_BUFFER - 1);
+        	previous_buffer[MAX_CMD_BUFFER - 1] = '\0';
+    	}
     }
 }
 
@@ -138,53 +140,55 @@ int no_interactive_shell(char buffer[], char previous_buffer[]) {
         }
         // 2. !!
         if (strncmp("!!", buffer, 2) == 0){
-                no_interactive_shell(previous_buffer, buffer);
-		return 0;
+                if (strlen(previous_buffer) == 0) {
+            		printf("No previous command.\n");
+            		return 0;
+        	}
+        	no_interactive_shell(previous_buffer, buffer);
+        	return 0;
         }
-        // 1. echo
+	// 1. echo
         if (strncmp("echo ", buffer, 5) == 0){
-                int length = strlen(buffer) - 5;
-                char text[length];
-                strncpy(text, buffer+ 5, length);
-                text[length] = '\0';
-                printf("%s", text);
+                printf("%s", buffer + 5);
 		return 0;
         }
         //3. exit<num>
-	if (strncmp("exit ", buffer, 5) == 0 ) {
-                int length = strlen(buffer) - 5;
-                char text[length];
-                strncpy(text, buffer+ 5, length);
-                text[length] = '\0';
-                int num = atoi(text);
-		if(num > 255){
-                	num = num & 0xFF;
-		}
-                return num;
+	if (strncmp("exit ", buffer, 4) == 0 ) {
+		if (strncmp("exit ", buffer, 5) == 0){
+                        int num = atoi(buffer+5) & 0xFF;
+			return num;
+                }
+        	return 0;
         }
-	printf("Bad Command!!\n");
-	return 0;
+	char buffer_copy[MAX_CMD_BUFFER];
+    	strcpy(buffer_copy, buffer);
+    	strcat(buffer_copy, "\n");  
+    	if (external_program(buffer_copy)) {
+        	return 0;  
+    	} else {
+        	printf("Bad Command!!\n");
+        	return 0;
+    	}
 }
 
 
 
 int main(int argc, char *argv[]){
-	
+	int exit_num;
 	if(argc >= 2){
 		FILE *file;
 		char buffer[MAX_CMD_BUFFER];
 		char previous_buffer[MAX_CMD_BUFFER];
-		int ret;
 		file = fopen(argv[1], "r");
 		while(fgets(buffer, MAX_CMD_BUFFER, file)){
-			ret = no_interactive_shell(buffer,previous_buffer);
-			copy_buffer(buffer,previous_buffer, sizeof(buffer));;
+			exit_num = no_interactive_shell(buffer,previous_buffer);
+               		strncpy(previous_buffer, buffer, MAX_CMD_BUFFER - 1);
 		}
 		fclose(file);
-		return ret;
+		return exit_num;
 	}
 	else{
-		interactive_shell();
+		exit_num = interactive_shell();
 	}
-	return 0;
+	return exit_num;
 }
